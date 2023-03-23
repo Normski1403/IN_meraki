@@ -6,7 +6,7 @@ import json
 
 
 def getNetworkClientOverview(network_id):
-    '''
+    ''' Gets the stats for a particular site.
     '''
     response = dashboard.networks.getNetworkClientsOverview(network_id)
     print(network_id)
