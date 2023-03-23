@@ -6,13 +6,13 @@ import json
 
 
 def main():
-    dashboard = meraki.DashboardAPI()
+    dashboard = meraki.DashboardAPI(log_path='logging/')
     my_orgs = dashboard.organizations.getOrganizations()
     org_id = my_orgs[0]['id']
     print(org_id)
     print(json.dumps(my_orgs, indent=4))
     print('================================')
-    
+
 
 
 if __name__ == '__main__':
