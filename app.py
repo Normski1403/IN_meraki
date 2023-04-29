@@ -9,7 +9,6 @@ def getNetworkClientOverview(network_id):
     ''' Gets the stats for a particular site.
     '''
     response = dashboard.networks.getNetworkClientsOverview(network_id)
-    print(network_id)
     print(json.dumps(response, indent=4))
 
 
@@ -21,9 +20,24 @@ def getOrganistaionDevices(id):
         - serial number # 
     '''
     all_devices = dashboard.organizations.getOrganizationDevicesStatuses(id, total_pages='all')
-    # print(json.dumps(all_devices, indent=4))
+    print(json.dumps(all_devices, indent=4))
     for device in all_devices:
+        #print(f"{device['name']} - {device['networkId']} - {device['tags']}")
         getNetworkClientOverview(device['networkId'])
+
+
+def getOrganizationNetworks(id):
+    ''' List all of the devices with the organisation, this will contain the following which are
+    required for follow up API calls:
+        - name
+        - networkID # Used to get usage statistics
+    '''
+    response = dashboard.organizations.getOrganizationNetworks(
+                                        id, total_pages='all', tagsFilterType="withAllTags"
+                                        )
+    for device in response:
+        print(f"{device['name']} - {device['id']} - {device['tags']}")
+        getNetworkClientOverview(device['id'])
 
 
 def getOrganisationClientOverview(id):
@@ -37,13 +51,15 @@ def getOrganisationClientOverview(id):
 
 def main():
     global dashboard
-    dashboard = meraki.DashboardAPI(log_path='logging/')
+    dashboard = meraki.DashboardAPI(log_path='logging/', print_console=False)
     my_orgs = dashboard.organizations.getOrganizations()
     org_id = my_orgs[0]['id']
     print(org_id)
     # print(json.dumps(my_orgs, indent=4))
+    # print('================================')
+    # getOrganistaionDevices(org_id)
     print('================================')
-    getOrganistaionDevices(org_id)
+    getOrganizationNetworks(org_id)
     # getOrganisationClientOverview(org_id)
 
 
