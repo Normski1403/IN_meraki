@@ -28,6 +28,15 @@ def getNetworkClients(network_id):
     return total, upload, download
 
 
+def getNetworkClientsApplicationUsage(id):
+    ''' Get network application breakdown
+    '''
+    clients = '72:c3:e5:31:8f:a0,96:df:ef:d5:eb:8c,c6:1f:54:ea:f0:d6'
+    response = dashboard.networks.getNetworkClientsApplicationUsage(
+                                    id, clients, total_pages='all', timespan=total_secs)
+    print(json.dumps(response, indent=4))
+
+
 def getOrganizationNetworks(id):
     ''' List all of the devices with the organisation, this will contain the following which are
     required for follow up API calls:
@@ -38,7 +47,7 @@ def getOrganizationNetworks(id):
                                         id, total_pages='all', tagsFilterType="withAllTags"
                                         )
     networks = []
-    for device in networks_api:
+    for device in networks_api[4:5]:
         network = {}
         network['name'] = device.get('name')
         network['id'] = device.get('id')
@@ -48,8 +57,10 @@ def getOrganizationNetworks(id):
             network['tag'] = "No tag"
         network['total clients'], network['avg of clients'] = getNetworkClientOverview(device['id'])
         network['total'], network['upload'], network['download'] = getNetworkClients(device['id'])
-        print(json.dumps(network, indent=4))
+        # getNetworkClientsApplicationUsage(device['id'])
         networks.append(network)
+        print(json.dumps(network, indent=4))
+    print(json.dumps(networks, indent=4))
 
 
 def getSeconds(now):
