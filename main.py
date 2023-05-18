@@ -3,7 +3,10 @@
 '''
 import meraki
 import json
+import os
 from datetime import datetime, timedelta
+from time import sleep, time
+
 
 
 def getNetworkClientOverview(network_id):
@@ -47,12 +50,14 @@ def getOrganizationNetworks(id):
                                         id, total_pages='all', tagsFilterType="withAllTags"
                                         )
     networks = []
-    for device in networks_api[4:5]:
+    for device in networks_api:
         network = {}
         network['name'] = device.get('name')
         network['id'] = device.get('id')
-        if len(device.get('tags')) > 0:
+        if len(device.get('tags')) == 1:
             network['tag'] = device.get('tags')[0]
+        elif len(device.get('tags')) > 1:
+            network['tag'] = ",".join(device.get('tags'))
         else:
             network['tag'] = "No tag"
         network['total clients'], network['avg of clients'] = getNetworkClientOverview(device['id'])
@@ -77,15 +82,22 @@ def getSeconds(now):
     
 
 def main():
+    st = time()
+    api_key = os.getenv("MERAKI_DASHBOARD_API_KEY")
+    print(api_key)
     global dashboard
     now = datetime.now()
     getSeconds(now)
-    dashboard = meraki.DashboardAPI(log_path='logging/', print_console=False)
+    dashboard = meraki.DashboardAPI(api_key, log_path='logging/', print_console=False)
     my_orgs = dashboard.organizations.getOrganizations()
-    org_id = my_orgs[0]['id']
-    print(org_id)
-    print('================================')
-    getOrganizationNetworks(org_id)
+    # print(json.dumps(my_orgs, indent=4))
+    for org in my_orgs:
+        org_id = org['id']
+        print(org_id)
+        print('================================')
+        getOrganizationNetworks(org_id)
+    et = time()
+    print(et-st)
 
 
 if __name__ == '__main__':
