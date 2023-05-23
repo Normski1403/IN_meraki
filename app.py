@@ -15,6 +15,20 @@ def getNetworkClientOverview(network_id):
     print(json.dumps(response, indent=4))
 
 
+def getNetworkClients(network_id):
+    ''' Gets the stats for a particular site.
+    '''
+    response = dashboard.networks.getNetworkClients(network_id, total_pages=-1)
+    # print(json.dumps(response, indent=4))
+    print(f'Number of clients in last day is {len(response)}')
+    total, upload, download = 0,0,0
+    for client in response:
+        total += client['usage']['total']
+        upload += client['usage']['sent']
+        download += client['usage']['recv']
+        print(f"{client['mac']}  Total: {total}  Upload: {upload}   Download: {download}")
+        
+
 def getOrganistaionDevices(id):
     ''' List all of the devices with the organisation, this will contain the following which are
     required for follow up API calls:
@@ -38,9 +52,11 @@ def getOrganizationNetworks(id):
     response = dashboard.organizations.getOrganizationNetworks(
                                         id, total_pages='all', tagsFilterType="withAllTags"
                                         )
-    for device in response:
+    for device in response[4:5]:
         print(f"{device['name']} - {device['id']} - {device['tags']}")
         getNetworkClientOverview(device['id'])
+        clients = getNetworkClients(device['id'])
+        print('================================')
 
 
 def getOrganisationClientOverview(id):

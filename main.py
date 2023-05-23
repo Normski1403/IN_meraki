@@ -80,19 +80,51 @@ def getOrganizationNetworks(id, networks):
             network['tag'] = "No tag"
         network['total clients'], network['avg of clients'] = getNetworkClientOverview(device['id'])
         if network['total clients'] == 0:
-            print(f"Skipping site {network['name']}")
+            # print(f"Skipping site {network['name']}")
             continue
         network['total'], network['upload'], network['download'], client_list = getNetworkClients(device['id'])
-        step = 20
+        # step: The number of MAC's to get from client API call
+        # count: The total amount of data to work out the % an app has used of total data transfer
+        step, total = 30, 0
         client_list = client_list.split(',')
+        '''
+        Step through the client list in groups of step and get all the application data, add the dictionary of
+        application data to application_data list
+        '''
         for pos in range(0, len(client_list), step):
-            # print(f"Clients {pos} to {pos+step}")
+            # print(f"Collecting clients {pos} to {pos+step}")
             application_data = getNetworkClientsApplicationUsage(device['id'], client_list[pos:pos+step], application_data)
+        '''
+        Step through each application and combine tx and rx to get a total data value and add it to dictionary
+        Also keeps a running total of the total amount of data sent.
+        '''
         for app, items in application_data.items():
             # print(f"{app} - {items}")
             application_data[app]['total'] = items['received'] + items['sent']
-        print(f"Successfully collected data for site {network['name']}")
-        pprint(application_data)
+            total += application_data[app]['total']
+        '''
+        Add to each application the % of the total data they used
+        '''
+        for app in application_data:
+            application_data[app]["percent of total"] = (application_data[app]['total'] / total) * 100
+        ''' 
+        Sort the applcation into rank order using the total data as the sort value
+        '''
+        sorted_application_data = sorted(application_data.items(), key=lambda x: x[1]['total'], reverse=True)
+        # pprint(application_data)
+        # print(f"Successfully collected data for site {network['name']}")
+        # pprint(sorted_application_data[:10])
+        network['application data'] = {}
+        '''
+        Loop through the top 10 applications and add it into the overall site dictionary with the key being its
+        position in the top 10 rank
+        '''
+        for count, app_data in enumerate(sorted_application_data[:10], start=1):
+            combined_app_data = app_data[1]
+            combined_app_data['application'] = app_data[0]
+            network['application data'][count] = combined_app_data
+            # print(combined_app_data)
+        # pprint(network)
         networks.append(network)
     return networks
 
@@ -108,7 +140,7 @@ def getSeconds(now):
     seconds_in_day = 86400
     global total_secs
     total_secs = yesterday.day * seconds_in_day
-    print(total_secs)
+    # print(total_secs)
     
 
 def main():
@@ -129,7 +161,7 @@ def main():
         getOrganizationNetworks(org_id, networks)
     print(json.dumps(networks, indent=4))
     et = time()
-    print(et-st)
+    # print(et-st)
 
 
 if __name__ == '__main__':
