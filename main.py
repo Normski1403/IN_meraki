@@ -80,8 +80,9 @@ def getOrganizationNetworks(id, networks):
             network['tag'] = "No tag"
         network['total clients'], network['avg of clients'] = getNetworkClientOverview(device['id'])
         if network['total clients'] == 0:
-            # print(f"Skipping site {network['name']}")
+            # print(f"Skipping site {network['name']} as no clients detected...")
             continue
+        # print(f"Collecting site {network['name']}...")
         network['total'], network['upload'], network['download'], client_list = getNetworkClients(device['id'])
         # step: The number of MAC's to get from client API call
         # count: The total amount of data to work out the % an app has used of total data transfer
@@ -91,6 +92,7 @@ def getOrganizationNetworks(id, networks):
         Step through the client list in groups of step and get all the application data, add the dictionary of
         application data to application_data list
         '''
+        # print(f"{len(client_list)} detected in the last month...")
         for pos in range(0, len(client_list), step):
             # print(f"Collecting clients {pos} to {pos+step}")
             application_data = getNetworkClientsApplicationUsage(device['id'], client_list[pos:pos+step], application_data)
@@ -124,7 +126,8 @@ def getOrganizationNetworks(id, networks):
             combined_app_data['application'] = app_data[0]
             network['application data'][count] = combined_app_data
             # print(combined_app_data)
-        # pprint(network)
+        network['timestamp'] = datetime.now().isoformat(timespec="seconds")
+        print(json.dumps(network))
         networks.append(network)
     return networks
 
@@ -159,7 +162,7 @@ def main():
         # print(org_id)
         # print('================================')
         getOrganizationNetworks(org_id, networks)
-    print(json.dumps(networks, indent=4))
+    # print(json.dumps(networks, indent=4))
     et = time()
     # print(et-st)
 
