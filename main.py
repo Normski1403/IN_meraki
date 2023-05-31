@@ -78,8 +78,8 @@ def getOrganizationNetworks(id, networks):
             network['tag'] = ",".join(device.get('tags'))
         else:
             network['tag'] = "No tag"
-        network['total clients'], network['avg of clients'] = getNetworkClientOverview(device['id'])
-        if network['total clients'] == 0:
+        network['total_clients'], network['avg_of_clients'] = getNetworkClientOverview(device['id'])
+        if network['total_clients'] == 0:
             # print(f"Skipping site {network['name']} as no clients detected...")
             continue
         # print(f"Collecting site {network['name']}...")
@@ -108,7 +108,7 @@ def getOrganizationNetworks(id, networks):
         Add to each application the % of the total data they used
         '''
         for app in application_data:
-            application_data[app]["percent of total"] = (application_data[app]['total'] / total) * 100
+            application_data[app]["percent_of_total"] = (application_data[app]['total'] / total) * 100
         ''' 
         Sort the applcation into rank order using the total data as the sort value
         '''
@@ -116,7 +116,7 @@ def getOrganizationNetworks(id, networks):
         # pprint(application_data)
         # print(f"Successfully collected data for site {network['name']}")
         # pprint(sorted_application_data[:10])
-        network['application data'] = {}
+        network['application_data'] = {}
         '''
         Loop through the top 10 applications and add it into the overall site dictionary with the key being its
         position in the top 10 rank
@@ -124,7 +124,7 @@ def getOrganizationNetworks(id, networks):
         for count, app_data in enumerate(sorted_application_data[:10], start=1):
             combined_app_data = app_data[1]
             combined_app_data['application'] = app_data[0]
-            network['application data'][count] = combined_app_data
+            network['application_data'][count] = combined_app_data
             # print(combined_app_data)
         network['timestamp'] = datetime.now().isoformat(timespec="seconds")
         print(json.dumps(network))
@@ -169,3 +169,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
