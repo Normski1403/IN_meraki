@@ -13,18 +13,22 @@ load_dotenv()
 
 
 def calculate_time_range():
+    global yesterday_start, yesterday_end, today
+
     # Get the current date
     today = datetime.now()
-    yesterday = today - timedelta(days=1)
+    yesterday = datetime.now() - timedelta(days=counter)
     
-    global t0, t1
     # Set t1: 23:59 of the current day
-    t1 = yesterday.replace(hour=23, minute=59, second=59, microsecond=0)
+    yesterday_end = yesterday.replace(hour=23, minute=59, second=59, microsecond=0)
     
     # Set t0: Midnight of the first day of the same month
-    t0 = today.replace(hour=0, minute=0, second=0, microsecond=0)
-    print(f"t0: {t0}")
-    print(f"t1: {t1}")
+    yesterday_start = yesterday.replace(hour=0, minute=0, second=0, microsecond=0)
+
+    # 31 day rolling 
+    print(f"yesterday_start: {yesterday_start}")
+    print(f"yesterday_end: {yesterday_end}")
+    
 
 
 def convert_kb_to_higher_unit(kilobytes):
@@ -103,7 +107,10 @@ def getNetworkClientOverview(network_id):
     139.94GB    
 
     '''
-    response = dashboard.networks.getNetworkClientsOverview(network_id, t0=t0, t1=t1)
+    response = dashboard.networks.getNetworkClientsOverview(network_id, 
+                                                            resolution=7200, 
+                                                            t0=yesterday_start, 
+                                                            t1=yesterday_end)
     return response['counts']['total'], response['usages']['average']
 
 
@@ -118,7 +125,7 @@ def get_tags(network_tags):
 
 def main():
     api_key = os.getenv("MERAKI_DASHBOARD_API_KEY")
-    calculate_time_range()
+
     global dashboard
     now = datetime.now()
     dashboard = meraki.DashboardAPI(api_key, log_path='logging/', print_console=False)
@@ -133,24 +140,31 @@ def main():
         org_id = org['id']
         networks.extend(getOrganizationNetworks(org_id))
 
-    ''' Using the list of networks '''
-    all_network_data = []
-    for network in networks:
-        current_network = {}
-        current_network['timestamp'] = t1.isoformat(timespec="seconds")
-        current_network['name'] = network.get('name')
-        current_network['id'] = network.get('id')
-        current_network['organizationId'] = network.get('organizationId')
-        current_network['tag'] = get_tags(network.get('tags'))
-        current_network['total_clients'], current_network['avg_of_clients'] = getNetworkClientOverview(network['id'])
-        if current_network['avg_of_clients'] == 0:
-            # print(f"Skipping site {network['name']} as no clients detected...")
-            continue
-        # print(f'{network['name']:70} || {network['tags']} >>> {convert_kb_to_higher_unit(clients * user_avg)}')
-        current_network['total'] = current_network['total_clients'] * current_network['avg_of_clients']
-        current_network['human_total'] = convert_kb_to_higher_unit(current_network['total'])
-        print("JSON::" + json.dumps(current_network))
-
+    global counter
+    counter = 31
+    while counter > 0:
+        calculate_time_range()
+        ''' Using the list of networks '''
+        all_network_data = []
+        for network in networks:
+            current_network = {}
+            current_network['timestamp'] = yesterday_end.isoformat(timespec="seconds")
+            current_network['name'] = network.get('name')
+            current_network['id'] = network.get('id')
+            current_network['organizationId'] = network.get('organizationId')
+            current_network['tag'] = get_tags(network.get('tags'))
+            current_network['total_clients'], current_network['avg_of_clients'] = getNetworkClientOverview(network['id'])
+            if current_network['avg_of_clients'] == 0:
+                # print(f"Skipping site {network['name']} as no clients detected...")
+                continue
+            # print(f'{network['name']:70} || {network['tags']} >>> {convert_kb_to_higher_unit(clients * user_avg)}')
+            current_network['total'] = current_network['total_clients'] * current_network['avg_of_clients']
+            current_network['human_total'] = convert_kb_to_higher_unit(current_network['total'])
+            print("JSON::" + json.dumps(current_network))
+        counter -= 1
+        print("########")
 
 if __name__ == '__main__':
     main()
+        
+

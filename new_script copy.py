@@ -15,16 +15,18 @@ load_dotenv()
 def calculate_time_range():
     # Get the current date
     today = datetime.now()
-    yesterday = today - timedelta(days=1)
+    yesterday = datetime.now() - timedelta(days=1)
     
-    global t0, t1
+    global yesterday_start, yesterday_end
     # Set t1: 23:59 of the current day
-    t1 = yesterday.replace(hour=23, minute=59, second=59, microsecond=0)
+    yesterday_end = yesterday.replace(hour=23, minute=59, second=59, microsecond=0)
     
     # Set t0: Midnight of the first day of the same month
-    t0 = today.replace(hour=0, minute=0, second=0, microsecond=0)
-    print(f"t0: {t0}")
-    print(f"t1: {t1}")
+    yesterday_start = yesterday.replace(hour=0, minute=0, second=0, microsecond=0)
+
+    # 31 day rolling 
+    print(f"yesterday_start: {yesterday_start}")
+    print(f"yesterday_end: {yesterday_end}")
 
 
 def convert_kb_to_higher_unit(kilobytes):
@@ -103,7 +105,10 @@ def getNetworkClientOverview(network_id):
     139.94GB    
 
     '''
-    response = dashboard.networks.getNetworkClientsOverview(network_id, t0=t0, t1=t1)
+    response = dashboard.networks.getNetworkClientsOverview(network_id, 
+                                                            resolution=7200, 
+                                                            t0=yesterday_start, 
+                                                            t1=yesterday_end)
     return response['counts']['total'], response['usages']['average']
 
 
@@ -137,7 +142,7 @@ def main():
     all_network_data = []
     for network in networks:
         current_network = {}
-        current_network['timestamp'] = t1.isoformat(timespec="seconds")
+        current_network['timestamp'] = yesterday_end.isoformat(timespec="seconds")
         current_network['name'] = network.get('name')
         current_network['id'] = network.get('id')
         current_network['organizationId'] = network.get('organizationId')
@@ -151,6 +156,6 @@ def main():
         current_network['human_total'] = convert_kb_to_higher_unit(current_network['total'])
         print("JSON::" + json.dumps(current_network))
 
-
 if __name__ == '__main__':
     main()
+

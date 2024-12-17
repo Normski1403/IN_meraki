@@ -22,7 +22,7 @@ def calculate_time_range():
     t1 = yesterday.replace(hour=23, minute=59, second=59, microsecond=0)
     
     # Set t0: Midnight of the first day of the same month
-    t0 = today.replace(hour=0, minute=0, second=0, microsecond=0)
+    t0 = today.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
     print(f"t0: {t0}")
     print(f"t1: {t1}")
 
@@ -107,6 +107,21 @@ def getNetworkClientOverview(network_id):
     return response['counts']['total'], response['usages']['average']
 
 
+def getNetworkClients(network_id):
+    ''' Gets the stats for a particular site by looping through.
+    '''
+    response = dashboard.networks.getNetworkClients(network_id, total_pages=-1, timespan=total_secs)
+    # print(json.dumps(response, indent=4))
+    total, upload, download, client_list = 0, 0, 0, ''
+    for client in response:
+        total += client['usage']['total']
+        upload += client['usage']['sent']
+        download += client['usage']['recv']
+        client_list += f"{client['mac']},"
+        # print(f"{client['mac']}  Total: {total}  Upload: {upload}   Download: {download}")
+    # print(client_list)
+    return total, upload, download, client_list
+
 def get_tags(network_tags):
     if len(network_tags) == 1:
         return network_tags[0]
@@ -118,6 +133,7 @@ def get_tags(network_tags):
 
 def main():
     api_key = os.getenv("MERAKI_DASHBOARD_API_KEY")
+    site_id = os.getenv("SITE_ID")
     calculate_time_range()
     global dashboard
     now = datetime.now()
@@ -136,20 +152,21 @@ def main():
     ''' Using the list of networks '''
     all_network_data = []
     for network in networks:
-        current_network = {}
-        current_network['timestamp'] = t1.isoformat(timespec="seconds")
-        current_network['name'] = network.get('name')
-        current_network['id'] = network.get('id')
-        current_network['organizationId'] = network.get('organizationId')
-        current_network['tag'] = get_tags(network.get('tags'))
-        current_network['total_clients'], current_network['avg_of_clients'] = getNetworkClientOverview(network['id'])
-        if current_network['avg_of_clients'] == 0:
-            # print(f"Skipping site {network['name']} as no clients detected...")
-            continue
-        # print(f'{network['name']:70} || {network['tags']} >>> {convert_kb_to_higher_unit(clients * user_avg)}')
-        current_network['total'] = current_network['total_clients'] * current_network['avg_of_clients']
-        current_network['human_total'] = convert_kb_to_higher_unit(current_network['total'])
-        print("JSON::" + json.dumps(current_network))
+        if network['id'] == site_id:
+            current_network = {}
+            current_network['timestamp'] = t1.isoformat(timespec="seconds")
+            current_network['name'] = network.get('name')
+            current_network['id'] = network.get('id')
+            current_network['organizationId'] = network.get('organizationId')
+            current_network['tag'] = get_tags(network.get('tags'))
+            current_network['total_clients'], current_network['avg_of_clients'] = getNetworkClientOverview(network['id'])
+            if current_network['avg_of_clients'] == 0:
+                # print(f"Skipping site {network['name']} as no clients detected...")
+                continue
+            # print(f'{network['name']:70} || {network['tags']} >>> {convert_kb_to_higher_unit(clients * user_avg)}')
+            current_network['total'] = current_network['total_clients'] * current_network['avg_of_clients']
+            current_network['human_total'] = convert_kb_to_higher_unit(current_network['total'])
+            print("JSON::" + json.dumps(current_network))
 
 
 if __name__ == '__main__':
